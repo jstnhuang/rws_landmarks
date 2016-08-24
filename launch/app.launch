@@ -1,0 +1,6 @@
+<launch>
+  <!-- All requirements should be launched in the main RWS launch files. -->
+  <!--node pkg="mongo_msg_db" type="db_node.py" name="mongo_msg_db" /-->
+  <!--node pkg="static_cloud_db" type="static_cloud_db.py" name="static_cloud_db" /-->
+  <!--include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"></include-->
+</launch>

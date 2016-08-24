@@ -1,0 +1,183 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-icons/av-icons.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../../bower_components/ros-rviz/ros-rviz.html">
+<link rel="import" href="../../bower_components/ros-service/ros-service.html">
+<link rel="import" href="../styles/shared-styles.html">
+
+<dom-module id="landmark-view">
+  <template>
+    <style include="shared-styles"></style>
+    <style include="iron-flex"></style>
+    <style>
+      :host {
+        display: block;
+        height: 100%;
+      }
+      #backButton:hover {
+        background-color: var(--paper-grey-300);
+      }
+      #container {
+        height: 100%;
+      }
+      #nameInput {
+        max-width: 500px;
+        position: relative;
+        top: -11px;
+      }
+      #viz {
+        position: relative;
+      }
+      #rviz {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+    <app-route route="{{route}}" pattern="/:id" data="{{routeData}}"></app-route>
+    <ros-service
+      id="findService"
+      on-fail="_onFindError"
+      on-response="_onFindResponse"
+      name="/mongo_msg_db/find"
+      ros="{{ros}}"
+      service-type="mongo_msg_db_msgs/Find"
+    ></ros-service>
+    <ros-service
+      id="updateService"
+      on-fail="_onUpdateError"
+      name="/mongo_msg_db/update"
+      ros="{{ros}}"
+      service-type="mongo_msg_db_msgs/Update"
+    ></ros-service>
+    <div id="container" class="layout vertical">
+      <div>
+        <a href="/">
+          <paper-button id="backButton">
+            <iron-icon icon="arrow-back"></iron-icon>
+            <span>Back to landmark list</span>
+          </paper-button>
+        </a>
+      </div>
+      <div id="header" class="center layout horizontal">
+        <paper-input
+          class="flex"
+          id="nameInput"
+          label="Landmark name"
+          value="{{landmark.name}}"
+          on-change="_onNameChange"
+        ></paper-input>
+      </div>
+      <div id="viz" class="flex">
+        <ros-rviz id="rviz" ros="{{ros}}"></ros-rviz>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'landmark-view',
+
+      properties: {
+        landmark: Object,
+        ros: {
+          type: Object,
+          observer: '_updateLandmark',
+        },
+        route: Object,
+        routeData: Object,
+        _cloudTopic: Object,
+      },
+
+      observers: [
+        '_updateLandmark(routeData.id)',
+      ],
+
+      _updateLandmark: function(id) {
+        if (this.ros && this.routeData.id) {
+          var config = {
+            globalOptions: {
+              fixedFrame: '/base_footprint',
+            },
+            displays: [
+              {
+                isShown: true,
+                name: 'Grid',
+                type: 'grid',
+                options: {
+                  cellSize: 1,
+                  color: '#cccccc',
+                  numCells: 20,
+                },
+              }, {
+                isShown: true,
+                name: 'Point cloud 2',
+                type: 'pointCloud2',
+                options: {
+                  topic: '/object_search/objects/' + this.routeData.id,
+                  size: 0.02,
+                },
+              },
+            ],
+            sidebarOpened: false,
+          };
+          this.$.rviz.loadConfig(config);
+
+          var msg = {
+            collection: {
+              db: 'object_search',
+              collection: 'objects',
+            },
+            id: this.routeData.id,
+          };
+          this.$.findService.call(msg);
+        }
+      },
+
+      _onFindResponse: function(evt) {
+        if (evt.detail.matched_count !== 1) {
+          this._onFindError();
+        }
+        
+        this.landmark = JSON.parse(evt.detail.message.json);
+        this._cloudTopic = new ROSLIB.Topic({
+          ros: this.ros,
+          name: '/object_search/objects/' + this.routeData.id,
+          message: 'sensor_msgs/PointCloud2',
+          latch: true
+        });
+        var cloud = new ROSLIB.Message(this.landmark.cloud);
+        this._cloudTopic.publish(cloud);
+      },
+
+      _onFindError: function(evt) {
+        console.error('Error looking up ID: ' + this.routeData.id, evt.detail);
+        this.$.toast.text = 'Failed to load landmark.';
+        this.$.toast.show();
+      },
+
+      _onNameChange: function() {
+        this.landmark.name = this.$.nameInput.value;
+        var msg = {
+          collection: {
+            db: 'object_search',
+            collection: 'objects',
+          },
+          message: {
+            id: this.routeData.id,
+            json: JSON.stringify(this.landmark),
+            msg_type: 'rapid_msgs/StaticCloud',
+          }
+        };
+        this.$.updateService.call(msg);
+      },
+    });
+  </script>
+</dom-module>

@@ -1,0 +1,39 @@
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+
+<dom-module id="shared-styles">
+  <template>
+    <style>
+      body {
+        @apply(--paper-font-common-base);
+      }
+      paper-button {
+        @apply(--paper-font-button);
+        border-radius: 2px;
+        letter-spacing: 0;
+        line-height: 1;
+      }
+      a {
+        text-decoration: none;
+        color: rgba(0, 0, 0, 0.87);
+      }
+      paper-button iron-icon {
+        --iron-icon-height: 18px;
+        --iron-icon-width: 18px;
+      }
+      paper-button span {
+        position: relative;
+        top: 1px;
+      }
+      paper-button.link {
+        color: rgba(0, 0, 0, 0.87);
+      }
+      paper-button.link:hover {
+        background-color: #e0e0e0;
+      }
+      paper-toast paper-button {
+        text-transform: none;
+        display: inline;
+      }
+    </style>
+  </template>
+</dom-module>

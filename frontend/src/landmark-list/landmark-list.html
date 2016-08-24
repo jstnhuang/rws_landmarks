@@ -1,0 +1,156 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-styles/typography.html">
+<link rel="import" href="../../bower_components/paper-toast/paper-toast.html">
+<link rel="import" href="../../bower_components/ros-service/ros-service.html">
+<link rel="import" href="../styles/shared-styles.html">
+
+<dom-module id="landmark-list">
+  <template>
+    <style include="shared-styles"></style>
+    <style>
+      :host {
+        display: block;
+        @apply(--paper-font-common-base);
+      }
+      paper-button.delete {
+        color: #D32F2F;
+      }
+      #confirmDeleteDialog h1 {
+        @apply(--paper-font-title);
+      }
+      .msgList {
+        border-spacing: 0;
+        width: 100%;
+      }
+      .msgList th, td {
+        border-bottom: 1px solid var(--divider-color);
+        padding: 5px 10px;
+      }
+      .msgList th {
+        text-align: left;
+        padding: 15px;
+      }
+      .msgList tr:last-child td {
+        border-bottom: none;
+      }
+    </style>
+    <ros-service
+      id="listService"
+      on-fail="_onListError"
+      on-response="_onResponse"
+      name="/mongo_msg_db/list"
+      ros="{{ros}}"
+      service-type="mongo_msg_db_msgs/List"
+    ></ros-service>
+    <ros-service
+      id="deleteService"
+      on-fail="_onDeleteError"
+      name="/mongo_msg_db/delete"
+      ros="{{ros}}"
+      service-type="mongo_msg_db_msgs/Delete"
+    ></ros-service>
+    <paper-material>
+    <table class="msgList">
+      <tr><th>Custom landmark name</th><th>Options</th></tr>
+      <template is="dom-repeat" items="{{messages}}">
+        <tr>
+          <td>{{item.landmark.name}}</td>
+          <td>
+            <a href="/landmark/{{item.id}}"><paper-button class="link" data-msg-id$="{{item.id}}">Open</paper-button></a>
+            <paper-button class="delete link" data-msg-id$="{{item.id}}" on-tap="_onMaybeDelete">Delete</paper-button>
+          </td>
+        </tr>
+      </template>
+    </table>
+    </paper-material>
+    <paper-dialog id="confirmDeleteDialog" modal>
+      <h1>Delete landmark?</h1>
+      <div class="buttons">
+        <paper-button dialog-dismiss>Cancel</paper-button>
+        <paper-button dialog-confirm on-tap="_onDelete">Delete</paper-button>
+      </div>
+    </paper-dialog>
+    <paper-toast id="toast"></paper-toast>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'landmark-list',
+
+      properties: {
+        messages: {
+          type: Array,
+          value: []
+        },
+        _msgToDelete: String,
+      },
+
+      update: function() {
+        this._updateList();
+      },
+
+      rosConnected: function() {
+        this._updateList();
+      },
+
+      _onMaybeDelete: function(evt) {
+        this._msgToDelete = evt.srcElement.dataset.msgId;
+        this.$.confirmDeleteDialog.open();
+      },
+
+      _onDelete: function() {
+        var msg = {
+          collection: {
+            db: 'object_search',
+            collection: 'objects'
+          },
+          id: this._msgToDelete
+        };
+        this.$.deleteService.call(msg);
+        this._updateList();
+      },
+
+      _onOpen: function(evt) {
+        this.set('routeData.page', "landmark");
+        this.set('routeData.id', evt.srcElement.dataset.msgId);
+      },
+
+      _onResponse: function(evt) {
+        this.messages = [];
+        var messages = evt.detail.messages;
+        for (var i = 0; i < messages.length; ++i) {
+          var msg = messages[i];
+          var id = msg.id;
+          var landmark = JSON.parse(msg.json);
+          this.push('messages', {id: id, landmark: landmark});
+        }
+      },
+
+      _updateList: function() {
+        var msg = {
+          collection: {
+            db: 'object_search',
+            collection: 'objects'
+          }
+        };
+        this.$.listService.call(msg);
+      },
+
+      _onListError: function(err) {
+        console.error(err);
+        this.$.toast.text = 'Failed to load landmark list.';
+        this.$.toast.show();
+      },
+
+      _onDeleteError: function(err) {
+        console.error(err);
+        this.$.toast.text = 'Failed to delete landmark.';
+        this.$.toast.show();
+      },
+
+    });
+  </script>
+</dom-module>

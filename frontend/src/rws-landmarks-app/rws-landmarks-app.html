@@ -1,0 +1,64 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/app-route/app-location.html">
+<link rel="import" href="../../bower_components/app-route/app-route.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../landmark-list/landmark-list.html">
+<link rel="import" href="../landmark-view/landmark-view.html">
+
+<dom-module id="rws-landmarks-app">
+  <template>
+    <style>
+      :host {
+        display: block;
+        height: 100%
+      }
+      iron-pages, iron-pages>section {
+        height: 100%;
+      }
+    </style>
+    <app-location route="{{route}}"></app-location>
+    <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{tail}}"></app-route>
+    <ros-websocket auto id="ros" ros="{{ros}}" on-connection="_rosConnected" on-error="_rosError"></ros-websocket>
+    <iron-pages attr-for-selected="data-page" selected="{{data.page}}">
+      <section data-page="">
+        <landmark-list id="list" ros="{{ros}}" route-data="{{data}}"></landmark-list>
+      </section>
+      <section data-page="landmark">
+        <landmark-view id="landmark" route="{{tail}}" ros="{{ros}}"></landmark-view>
+      </section>
+    </iron-pages>
+  </template>
+
+  <script>
+    Polymer({
+
+      is: 'rws-landmarks-app',
+
+      properties: {
+      },
+
+      observers: [
+        '_pageChanged(data.page)',
+      ],
+
+      ready: function() {
+      },
+
+      _pageChanged: function() {
+        if (this.data.page === '') {
+          this.$.list.update();
+        }
+      },
+
+      _rosConnected: function() {
+        console.log('Connected to the websocket server.');
+        this.$.list.rosConnected();
+      },
+
+      _rosError: function() {
+        console.error('Error connecting to the websocket server.');
+      },
+
+    });
+  </script>
+</dom-module>

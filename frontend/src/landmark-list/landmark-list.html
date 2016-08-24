@@ -14,6 +14,7 @@
       :host {
         display: block;
         @apply(--paper-font-common-base);
+        margin-top: 8px;
       }
       paper-button.delete {
         color: #D32F2F;
@@ -59,7 +60,7 @@
         <tr>
           <td>{{item.landmark.name}}</td>
           <td>
-            <a href="/landmark/{{item.id}}"><paper-button class="link" data-msg-id$="{{item.id}}">Open</paper-button></a>
+            <a href="#/landmark/{{item.id}}"><paper-button class="link" data-msg-id$="{{item.id}}">Open</paper-button></a>
             <paper-button class="delete link" data-msg-id$="{{item.id}}" on-tap="_onMaybeDelete">Delete</paper-button>
           </td>
         </tr>
@@ -130,13 +131,15 @@
       },
 
       _updateList: function() {
-        var msg = {
-          collection: {
-            db: 'object_search',
-            collection: 'objects'
-          }
-        };
-        this.$.listService.call(msg);
+        if (this.ros) {
+          var msg = {
+            collection: {
+              db: 'object_search',
+              collection: 'objects'
+            }
+          };
+          this.$.listService.call(msg);
+        }
       },
 
       _onListError: function(err) {

@@ -59,7 +59,7 @@
     ></ros-service>
     <div id="container" class="layout vertical">
       <div>
-        <a href="/">
+        <a href="#/">
           <paper-button id="backButton">
             <iron-icon icon="arrow-back"></iron-icon>
             <span>Back to landmark list</span>
@@ -79,6 +79,7 @@
         <ros-rviz id="rviz" ros="{{ros}}"></ros-rviz>
       </div>
     </div>
+    <paper-toast id="toast"></paper-toast>
   </template>
 
   <script>

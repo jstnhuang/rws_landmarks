@@ -16,7 +16,7 @@
         height: 100%;
       }
     </style>
-    <app-location route="{{route}}"></app-location>
+    <app-location route="{{route}}" use-hash-as-path></app-location>
     <app-route route="{{route}}" pattern="/:page" data="{{data}}" tail="{{tail}}"></app-route>
     <ros-websocket auto id="ros" ros="{{ros}}" on-connection="_rosConnected" on-error="_rosError"></ros-websocket>
     <iron-pages attr-for-selected="data-page" selected="{{data.page}}">
@@ -35,19 +35,30 @@
       is: 'rws-landmarks-app',
 
       properties: {
+        page: {
+          type: String,
+          value: '',
+        },
+        data: {
+          type: Object,
+          value: function() {
+            return { page: '' };
+          },
+        },
       },
 
       observers: [
         '_pageChanged(data.page)',
       ],
 
-      ready: function() {
-      },
-
       _pageChanged: function() {
+        if (this.data.page === undefined) {
+          this.page = '';
+        }
         if (this.data.page === '') {
           this.$.list.update();
         }
+        this.page = this.data.page;
       },
 
       _rosConnected: function() {
